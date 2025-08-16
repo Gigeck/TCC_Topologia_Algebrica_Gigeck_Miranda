@@ -81,8 +81,11 @@ def main():
     G = nx.cycle_graph(6)
     simpTree = acyclicComplexSimp(G)
     print("AM DONE")
+    count = 0
     for sk_value in simpTree.get_skeleton(6):
         print(sk_value)
+        count = count+1
+    print(count)
     print("I work")
 
 if __name__=="__main__":

@@ -59,43 +59,17 @@ def acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree):
         #terminal maybe maximal case (or false positives), optimal insert
         simpTree.insert(currentToAdd)
 
-def validMove(graph,currentSet,suspect):
-    if (suspect in currentSet): return False
-    count = 0
-    for v in currentSet:
-        if suspect in graph.adj[v]: count=count+1
-    if count > 1: return False
-    return True
-
-def check(x,y,graph,suspect):
-    if suspect in graph.adj[y] or x==y:
-        return x+1
-
-
-def main():
-
-    G = nx.fast_gnp_random_graph(30,0.3)
-    simpTree = cliqueComplexSimp(G)
-    print("AM DONE")
-    simpTree.compute_persistence()
-    bettis = simpTree.betti_numbers()
-    count = 0
-    for num in bettis:
-        print("numero {0}: {1}".format(count,num))
-        count=count+1
-    #for sk_value in simpTree.get_skeleton(6):
-    #    #print(sk_value)
-    #    count = count+1
+def sampleAndPlot(complexSimpMethod,quantos,vertices,proba):
     histList = [[],[],[]]
-    for n in range(100):
-        G = nx.fast_gnp_random_graph(30,0.3)
-        simpTree = cliqueComplexSimp(G)
+    for n in range(quantos):
+        G = nx.fast_gnp_random_graph(vertices,proba)
+        simpTree = complexSimpMethod(G)
         #print("AM DONE")
         simpTree.compute_persistence()
         bettis = simpTree.betti_numbers()
         count = 0
         for num in bettis:
-            #print("numero {0}: {1}".format(count,num))
+            print("numero {0}: {1}".format(count,num))
             histList[count].append(num)
             count=count+1
             if count == 3:
@@ -104,10 +78,67 @@ def main():
             for i in range(3-count):
                 histList[count].append(0)
                 count=count+1
+    plt.hist(histList[0], edgecolor='black')
+    plt.xlabel('number')
+    plt.ylabel('sample count')
+    plt.show()
     plt.hist(histList[1], edgecolor='black')
     plt.xlabel('number')
     plt.ylabel('sample count')
     plt.show()
+    plt.hist(histList[2], edgecolor='black')
+    plt.xlabel('number')
+    plt.ylabel('sample count')
+    plt.show()
+
+def validMove(graph,currentSet,suspect):
+    if (suspect in currentSet): return False
+    count = 0
+    for v in currentSet:
+        if suspect in graph.adj[v]: count=count+1
+    if count > 1: return False
+    return True
+
+def main():
+
+    sampleAndPlot(cliqueComplexSimp,100,30,0.3)
+
+    #G = nx.fast_gnp_random_graph(30,0.3)
+    #simpTree = cliqueComplexSimp(G)
+    #print("AM DONE")
+    #simpTree.compute_persistence()
+    #bettis = simpTree.betti_numbers()
+    #count = 0
+    #for num in bettis:
+    #    print("numero {0}: {1}".format(count,num))
+    #    count=count+1
+    #for sk_value in simpTree.get_skeleton(6):
+    #    #print(sk_value)
+    #    count = count+1
+    
+    #histList = [[],[],[]]
+    #for n in range(100):
+    #    G = nx.fast_gnp_random_graph(30,0.3)
+    #    simpTree = cliqueComplexSimp(G)
+    #    #print("AM DONE")
+    #    simpTree.compute_persistence()
+    #    bettis = simpTree.betti_numbers()
+    #    count = 0
+    #    for num in bettis:
+    #        print("numero {0}: {1}".format(count,num))
+    #        histList[count].append(num)
+    #        count=count+1
+    #        if count == 3:
+    #            break
+    #    if count != 3:
+    #        for i in range(3-count):
+    #            histList[count].append(0)
+    #            count=count+1
+    #plt.hist(histList[2], edgecolor='black')
+    #plt.xlabel('number')
+    #plt.ylabel('sample count')
+    #plt.show()
+    
     print("I work")
 
 if __name__=="__main__":

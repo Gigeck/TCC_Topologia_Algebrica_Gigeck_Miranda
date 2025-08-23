@@ -1,6 +1,6 @@
 import networkx as nx
 import gudhi as gd
-from functools import reduce
+import matplotlib.pyplot as plt
 
 def neighborComplexSimp(graph):
     simplex_tree_ret = gd.SimplexTree()
@@ -46,10 +46,10 @@ def acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree):
             acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree)
             currentToAdd.pop()
             continue #to not make a tab mess
-        print("here I am debugging again")
-        print(v)
-        print(currentToAdd)
-        print(graph)
+        #print("here I am debugging again")
+        #print(v)
+        #print(currentToAdd)
+        #print(graph)
         if validMove(graph,currentToAdd,v):
             successes=successes+1
             currentToAdd.append(v)
@@ -73,19 +73,41 @@ def check(x,y,graph,suspect):
 
 
 def main():
-    G = nx.path_graph(10)
-    mset = [2,4,6]
-    G.add_edge(3,6)
-    print(validMove(G,mset,3))
 
-    G = nx.cycle_graph(6)
-    simpTree = acyclicComplexSimp(G)
+    G = nx.fast_gnp_random_graph(30,0.3)
+    simpTree = cliqueComplexSimp(G)
     print("AM DONE")
+    simpTree.compute_persistence()
+    bettis = simpTree.betti_numbers()
     count = 0
-    for sk_value in simpTree.get_skeleton(6):
-        print(sk_value)
-        count = count+1
-    print(count)
+    for num in bettis:
+        print("numero {0}: {1}".format(count,num))
+        count=count+1
+    #for sk_value in simpTree.get_skeleton(6):
+    #    #print(sk_value)
+    #    count = count+1
+    histList = [[],[],[]]
+    for n in range(100):
+        G = nx.fast_gnp_random_graph(30,0.3)
+        simpTree = cliqueComplexSimp(G)
+        #print("AM DONE")
+        simpTree.compute_persistence()
+        bettis = simpTree.betti_numbers()
+        count = 0
+        for num in bettis:
+            #print("numero {0}: {1}".format(count,num))
+            histList[count].append(num)
+            count=count+1
+            if count == 3:
+                break
+        if count != 3:
+            for i in range(3-count):
+                histList[count].append(0)
+                count=count+1
+    plt.hist(histList[1], edgecolor='black')
+    plt.xlabel('number')
+    plt.ylabel('sample count')
+    plt.show()
     print("I work")
 
 if __name__=="__main__":

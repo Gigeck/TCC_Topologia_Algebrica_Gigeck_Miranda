@@ -130,6 +130,14 @@ def ripsSimplicialComplex(WG,cutoff):
     simplex_tree_ret = rips_complex.create_simplex_tree(max_dimension=10)
     return simplex_tree_ret
 
+def displayBettis(simpTree):
+    simpTree.compute_persistence()
+    bettis = simpTree.betti_numbers()
+    for (dim,value) in enumerate(bettis):
+        print("numero {0}: {1}".format(dim,value))
+    for num in bettis:
+        print(num)
+
 def main():
 
     #G = nx.fast_gnp_random_graph(30,0.3)
@@ -197,8 +205,10 @@ def main():
     plt.show()
 
     simpTree = ripsSimplicialComplex(G,12)
-    for sk_value in simpTree.get_skeleton(10):
-        print(sk_value)
+    #for sk_value in simpTree.get_skeleton(10):
+    #    print(sk_value)
+
+    displayBettis(simpTree)
 
     print("I work")
 

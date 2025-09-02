@@ -1,6 +1,10 @@
 import networkx as nx
 import gudhi as gd
 import matplotlib.pyplot as plt
+import random
+
+#global cons
+Infinity = 10000
 
 def neighborComplexSimp(graph):
     simplex_tree_ret = gd.SimplexTree()
@@ -25,39 +29,49 @@ def independentComplexSimp(graph):
     simplex_tree_ret = cliqueComplexSimp(cG)
     return simplex_tree_ret
 
-def acyclicComplexSimp(graph):
-    simplex_tree_ret = gd.SimplexTree()
-    acyclicComplexSimpBacktrack(graph,[],simplex_tree_ret)
-    return simplex_tree_ret
+#def acyclicComplexSimp(graph):
+#    simplex_tree_ret = gd.SimplexTree()
+#    acyclicComplexSimpBacktrack(graph,[],simplex_tree_ret)
+#    return simplex_tree_ret
+#
+#def acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree,depth=0):
+#    successes=0
+#    #print(depth)
+#    #a ideia e manter que sempre o conjunto é acíclico
+#    #então se um suspeito fizer um ciclo ele faz parte do ciclo e logo tem pelo menos 2 vizinhos
+#    #esse critério pega muitos falsos positivos
+#    #mas não é problema pois se foi um falso positivo então o falso positivo é uma floresta
+#    #por ser uma floresta há uma ordem que passe pelo critério
+#    #com o backtracking eu pego essa ordem em algum momento
+#    for v in graph.nodes:
+#        if len(currentToAdd) < 1:
+#            successes=successes+1
+#            currentToAdd.append(v) #edge case safety, likely useless
+#            simpTree.insert(currentToAdd)
+#            acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree,depth=depth+1)
+#            currentToAdd.pop()
+#            continue #to not make a tab mess
+#        #print("here I am debugging again")
+#        #print(v)
+#        #print(currentToAdd)
+#        #print(graph)
+#        if validMove(graph,currentToAdd,v):
+#            successes=successes+1
+#            currentToAdd.append(v)
+#            acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree,depth=depth+1)
+#            currentToAdd.pop()
+#    if successes==0:
+#        #terminal maybe maximal case (or false positives), optimal insert
+#        currentToAdd.sort()
+#        simpTree.insert(currentToAdd)
 
-def acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree):
-    successes=0
-    #a ideia e manter que sempre o conjunto é acíclico
-    #então se um suspeito fizer um ciclo ele faz parte do ciclo e logo tem pelo menos 2 vizinhos
-    #esse critério pega muitos falsos positivos
-    #mas não é problema pois se foi um falso positivo então o falso positivo é uma floresta
-    #por ser uma floresta há uma ordem que passe pelo critério
-    #com o backtracking eu pego essa ordem em algum momento
-    for v in graph.nodes:
-        if len(currentToAdd) < 1:
-            successes=successes+1
-            currentToAdd.append(v) #edge case safety, likely useless
-            simpTree.insert(currentToAdd)
-            acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree)
-            currentToAdd.pop()
-            continue #to not make a tab mess
-        #print("here I am debugging again")
-        #print(v)
-        #print(currentToAdd)
-        #print(graph)
-        if validMove(graph,currentToAdd,v):
-            successes=successes+1
-            currentToAdd.append(v)
-            acyclicComplexSimpBacktrack(graph,currentToAdd,simpTree)
-            currentToAdd.pop()
-    if successes==0:
-        #terminal maybe maximal case (or false positives), optimal insert
-        simpTree.insert(currentToAdd)
+#def validMove(graph,currentSet,suspect):
+#    if (suspect in currentSet): return False
+#    count = 0
+#    for v in currentSet:
+#        if suspect in graph.adj[v]: count=count+1
+#    if count > 1: return False
+#    return True
 
 def sampleAndPlot(complexSimpMethod,quantos,vertices,proba):
     histList = [[],[],[]]
@@ -91,17 +105,32 @@ def sampleAndPlot(complexSimpMethod,quantos,vertices,proba):
     plt.ylabel('sample count')
     plt.show()
 
-def validMove(graph,currentSet,suspect):
-    if (suspect in currentSet): return False
-    count = 0
-    for v in currentSet:
-        if suspect in graph.adj[v]: count=count+1
-    if count > 1: return False
-    return True
+def randomWeightedGraph(proba=0.3,vert=30,min=1,max=10):
+    G = nx.fast_gnp_random_graph(vert,proba)
+    for (u,v) in G.edges:
+        G.edges[u,v]["weight"] = random.randint(min,max)
+    return G
+
+def ripsSimplicialComplex(WG,cutoff):
+    distances = dict(nx.all_pairs_bellman_ford_path_length(WG))
+    # now transform this in distance matrix
+    n = len(WG.nodes)
+    matrix = [[Infinity for _ in range(n)] for _ in range (n)]
+    for (i,v) in enumerate(WG.nodes):
+        for (j,w) in enumerate(WG.nodes):
+            if w not in distances[v]:
+                continue
+            matrix[i][j] = distances[v][w]
+            matrix[j][i] = distances[w][v] #makes no difference
+
+    rips_complex = gd.RipsComplex(distance_matrix=matrix, max_edge_length=cutoff)
+    ####
+    #### HARDCODED CONSTANT BELOW
+    ####
+    simplex_tree_ret = rips_complex.create_simplex_tree(max_dimension=10)
+    return simplex_tree_ret
 
 def main():
-
-    sampleAndPlot(cliqueComplexSimp,100,30,0.3)
 
     #G = nx.fast_gnp_random_graph(30,0.3)
     #simpTree = cliqueComplexSimp(G)
@@ -138,7 +167,39 @@ def main():
     #plt.xlabel('number')
     #plt.ylabel('sample count')
     #plt.show()
+
+
+    #COOL PLOT BELOW
+
+    G = randomWeightedGraph(vert=10)
+
+    elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > 5]
+    esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 5]
+
+    pos = nx.spring_layout(G, seed=7)
     
+    # edges
+    nx.draw_networkx_edges(G, pos, edgelist=elarge, width=6)
+    nx.draw_networkx_edges(
+        G, pos, edgelist=esmall, width=6, alpha=0.5, edge_color="b", style="dashed"
+    )
+
+    # node labels
+    nx.draw_networkx_labels(G, pos, font_size=20, font_family="sans-serif")
+    # edge weight labels
+    edge_labels = nx.get_edge_attributes(G, "weight")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels)
+
+    ax = plt.gca()
+    ax.margins(0.08)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+    simpTree = ripsSimplicialComplex(G,12)
+    for sk_value in simpTree.get_skeleton(10):
+        print(sk_value)
+
     print("I work")
 
 if __name__=="__main__":

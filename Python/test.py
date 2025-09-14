@@ -135,8 +135,41 @@ def displayBettis(simpTree):
     bettis = simpTree.betti_numbers()
     for (dim,value) in enumerate(bettis):
         print("numero {0}: {1}".format(dim,value))
-    for num in bettis:
-        print(num)
+
+def displayGraph(G,mid):
+    elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > mid]
+    esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= mid]
+
+    pos = nx.spring_layout(G, seed=7)
+    
+    # edges
+    nx.draw_networkx_edges(G, pos, edgelist=elarge, width=6)
+    nx.draw_networkx_edges(
+        G, pos, edgelist=esmall, width=6, alpha=0.5, edge_color="b", style="dashed"
+    )
+
+    # node labels
+    nx.draw_networkx_labels(G, pos, font_size=20, font_family="sans-serif")
+    # edge weight labels
+    edge_labels = nx.get_edge_attributes(G, "weight")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels)
+
+    ax = plt.gca()
+    ax.margins(0.08)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+def displaySimplices(simpTree, maxdim=10, file=None):
+    if file==None:
+        for sk_value in simpTree.get_skeleton(maxdim):
+            print(sk_value)
+    else:
+        with open(file,"w") as f :
+            f.write("Simplices com dimensão máxima {0}:\n".format(maxdim))
+            for sk_value in simpTree.get_skeleton(maxdim):
+                f.write(repr(sk_value)+"\n")
+
 
 def main():
 
@@ -176,40 +209,19 @@ def main():
     #plt.ylabel('sample count')
     #plt.show()
 
+    output = "output.txt"
+    G = randomWeightedGraph(vert=30)
 
-    #COOL PLOT BELOW
+    displayGraph(G,5)
 
-    G = randomWeightedGraph(vert=10)
-
-    elarge = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] > 5]
-    esmall = [(u, v) for (u, v, d) in G.edges(data=True) if d["weight"] <= 5]
-
-    pos = nx.spring_layout(G, seed=7)
-    
-    # edges
-    nx.draw_networkx_edges(G, pos, edgelist=elarge, width=6)
-    nx.draw_networkx_edges(
-        G, pos, edgelist=esmall, width=6, alpha=0.5, edge_color="b", style="dashed"
-    )
-
-    # node labels
-    nx.draw_networkx_labels(G, pos, font_size=20, font_family="sans-serif")
-    # edge weight labels
-    edge_labels = nx.get_edge_attributes(G, "weight")
-    nx.draw_networkx_edge_labels(G, pos, edge_labels)
-
-    ax = plt.gca()
-    ax.margins(0.08)
-    plt.axis("off")
-    plt.tight_layout()
-    plt.show()
-
-    simpTree = ripsSimplicialComplex(G,12)
+    #simpTree = ripsSimplicialComplex(G,14)
+    simpTree = independentComplexSimp(G)
+    print("this is fast, right")
     #for sk_value in simpTree.get_skeleton(10):
     #    print(sk_value)
 
     displayBettis(simpTree)
-
+    displaySimplices(simpTree,10,output)
     print("I work")
 
 if __name__=="__main__":

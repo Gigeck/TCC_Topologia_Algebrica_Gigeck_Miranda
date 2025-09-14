@@ -127,7 +127,7 @@ def ripsSimplicialComplex(WG,cutoff):
     ####
     #### HARDCODED CONSTANT BELOW
     ####
-    simplex_tree_ret = rips_complex.create_simplex_tree(max_dimension=10)
+    simplex_tree_ret = rips_complex.create_simplex_tree(max_dimension=3)
     return simplex_tree_ret
 
 def displayBettis(simpTree):
@@ -214,8 +214,8 @@ def main():
 
     displayGraph(G,5)
 
-    #simpTree = ripsSimplicialComplex(G,14)
-    simpTree = independentComplexSimp(G)
+    simpTree = ripsSimplicialComplex(G,14)
+    #simpTree = independentComplexSimp(G)
     print("this is fast, right")
     #for sk_value in simpTree.get_skeleton(10):
     #    print(sk_value)

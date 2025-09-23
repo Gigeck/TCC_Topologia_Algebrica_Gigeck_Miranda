@@ -6,27 +6,53 @@ import random
 #global cons
 Infinity = 10000
 
-def neighborComplexSimp(graph):
-    simplex_tree_ret = gd.SimplexTree()
-    for g in graph.nodes:
-        neigCopy = (list(graph.adj[g])).copy()
-        neigCopy.append(g)
-        neigCopy.sort()
-        simplex_tree_ret.insert(neigCopy)
+def neighborComplexSimp(graph, simp_tree=None, max_dim=3, filtr=0.0):
+    if simp_tree is None:
+        simplex_tree_ret = gd.SimplexTree()
+        for g in graph.nodes:
+            neigCopy = (list(graph.adj[g])).copy()
+            neigCopy.append(g)
+            neigCopy.sort()
+            simplex_tree_ret.insert(neigCopy)
+        simplex_tree_ret.prune_above_dimension(max_dim)
+        return simplex_tree_ret
+    else:
+        for g in graph.nodes:
+            neigCopy = (list(graph.adj[g])).copy()
+            neigCopy.append(g)
+            neigCopy.sort()
+            if not simp_tree.find(neigCopy):
+                simp_tree.insert(neigCopy,filtration=filtr)
+        simp_tree.prune_above_dimension(max_dim)
+        return simp_tree
 
-    return simplex_tree_ret
 
-def cliqueComplexSimp(graph):
-    simplex_tree_ret = gd.SimplexTree()
-    cliques = nx.enumerate_all_cliques(graph)
-    #adds a lot of repetitive cliques, but it is fine
-    for i in cliques:
-        simplex_tree_ret.insert(i)
-    return simplex_tree_ret
+def cliqueComplexSimp(graph, simp_tree=None, max_dim=3, filtr=0.0):
+    if simp_tree is None:
+        simplex_tree_ret = gd.SimplexTree()
+        cliques = nx.enumerate_all_cliques(graph)
+        #adds a lot of repetitive cliques, but it is fine
+        for i in cliques:
+            if len(i) > max_dim+1:
+                break
+            simplex_tree_ret.insert(i)
+        return simplex_tree_ret
+    
+    else:
+        cliques = nx.enumerate_all_cliques(graph)
+        #adds a lot of repetitive cliques, but it is fine
+        for i in cliques:
+            if len(i) > max_dim+1:
+                break
+            if not simp_tree.find(i):
+                simp_tree.insert(i,filtration=filtr)
+        return simp_tree
 
-def independentComplexSimp(graph):
+
+def independentComplexSimp(graph, max_dim=3):
+    #THIS CANNOT BE USED FOR THE FILTRATION AS IT DOES NOT WORK THAT WAY
     cG = nx.complement(graph)
-    simplex_tree_ret = cliqueComplexSimp(cG)
+    simplex_tree_ret = cliqueComplexSimp(cG,max_dim=max_dim)
     return simplex_tree_ret
 
 #def acyclicComplexSimp(graph):
@@ -161,7 +187,7 @@ def displayGraph(G,mid):
     plt.show()
 
 def displaySimplices(simpTree, maxdim=10, file=None):
-    if file==None:
+    if file is None:
         for sk_value in simpTree.get_skeleton(maxdim):
             print(sk_value)
     else:
@@ -170,6 +196,27 @@ def displaySimplices(simpTree, maxdim=10, file=None):
             for sk_value in simpTree.get_skeleton(maxdim):
                 f.write(repr(sk_value)+"\n")
 
+def edgeFiltration(graph,simplicialFunction):
+    newG = nx.Graph()
+    newG.add_nodes_from(graph)
+    filtration = 1.0
+    simplex_tree_ret = gd.SimplexTree()
+    edges = sorted(graph.edges(data=True), key=lambda edge: edge[2].get("weight",1))
+    #for edge in edges:
+    #    print("({0}, {1}) com peso abaixo".format(edge[0],edge[1]))
+    #    print(edge[2].get("weight",1))
+    for edge in edges:
+        newG.add_edges_from([edge])
+        #do something with simplex tree
+        simplicialFunction(newG,simp_tree=simplex_tree_ret,filtr=filtration)
+        filtration=filtration+1.0
+    return simplex_tree_ret
+
+def erdosGraphGenerator(prob=0.3,ver=30,mn=1,mx=10):
+    G = randomWeightedGraph(proba=prob,vert=ver,min=mn,max=mx)
+    while True:
+        yield G
+        G = randomWeightedGraph(proba=prob,vert=ver,min=mn,max=mx)
 
 def main():
 
@@ -185,43 +232,25 @@ def main():
     #for sk_value in simpTree.get_skeleton(6):
     #    #print(sk_value)
     #    count = count+1
-    
-    #histList = [[],[],[]]
-    #for n in range(100):
-    #    G = nx.fast_gnp_random_graph(30,0.3)
-    #    simpTree = cliqueComplexSimp(G)
-    #    #print("AM DONE")
-    #    simpTree.compute_persistence()
-    #    bettis = simpTree.betti_numbers()
-    #    count = 0
-    #    for num in bettis:
-    #        print("numero {0}: {1}".format(count,num))
-    #        histList[count].append(num)
-    #        count=count+1
-    #        if count == 3:
-    #            break
-    #    if count != 3:
-    #        for i in range(3-count):
-    #            histList[count].append(0)
-    #            count=count+1
-    #plt.hist(histList[2], edgecolor='black')
-    #plt.xlabel('number')
-    #plt.ylabel('sample count')
-    #plt.show()
 
     output = "output.txt"
-    G = randomWeightedGraph(vert=30)
+    #G = randomWeightedGraph(vert=30)
+    eGG = erdosGraphGenerator(ver=10)
 
+    G = next(eGG)
     displayGraph(G,5)
+    
+    simpTree = edgeFiltration(G,neighborComplexSimp)
+    displaySimplices(simpTree,10,output)
 
-    simpTree = ripsSimplicialComplex(G,14)
+    #simpTree = ripsSimplicialComplex(G,14)
     #simpTree = independentComplexSimp(G)
     print("this is fast, right")
     #for sk_value in simpTree.get_skeleton(10):
     #    print(sk_value)
 
-    displayBettis(simpTree)
-    displaySimplices(simpTree,10,output)
+    #displayBettis(simpTree)
+    #displaySimplices(simpTree,10,output)
     print("I work")
 
 if __name__=="__main__":

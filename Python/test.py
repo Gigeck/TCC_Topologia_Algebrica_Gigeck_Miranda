@@ -137,7 +137,7 @@ def randomWeightedGraph(proba=0.3,vert=30,min=1,max=10):
         G.edges[u,v]["weight"] = random.randint(min,max)
     return G
 
-def ripsSimplicialComplex(WG,cutoff):
+def ripsSimplicialComplex(WG,cutoff,mxDim=3):
     distances = dict(nx.all_pairs_bellman_ford_path_length(WG))
     # now transform this in distance matrix
     n = len(WG.nodes)
@@ -153,7 +153,7 @@ def ripsSimplicialComplex(WG,cutoff):
     ####
     #### HARDCODED CONSTANT BELOW
     ####
-    simplex_tree_ret = rips_complex.create_simplex_tree(max_dimension=3)
+    simplex_tree_ret = rips_complex.create_simplex_tree(max_dimension=mxDim)
     return simplex_tree_ret
 
 def displayBettis(simpTree):
@@ -196,7 +196,7 @@ def displaySimplices(simpTree, maxdim=10, file=None):
             for sk_value in simpTree.get_skeleton(maxdim):
                 f.write(repr(sk_value)+"\n")
 
-def edgeFiltration(graph,simplicialFunction):
+def edgeFiltration(graph,simplicialFunction, mxDim=3):
     newG = nx.Graph()
     newG.add_nodes_from(graph)
     filtration = 1.0
@@ -208,7 +208,7 @@ def edgeFiltration(graph,simplicialFunction):
     for edge in edges:
         newG.add_edges_from([edge])
         #do something with simplex tree
-        simplicialFunction(newG,simp_tree=simplex_tree_ret,filtr=filtration)
+        simplicialFunction(newG,simp_tree=simplex_tree_ret,filtr=filtration,max_dim=mxDim)
         filtration=filtration+1.0
     return simplex_tree_ret
 
@@ -217,6 +217,49 @@ def erdosGraphGenerator(prob=0.3,ver=30,mn=1,mx=10):
     while True:
         yield G
         G = randomWeightedGraph(proba=prob,vert=ver,min=mn,max=mx)
+
+def betterSampleAndPlot(GraphGen,quant=100,max_dim=3,mode=1,cut=5):
+    #Mode 1 neighbor, Mode 2 clique, mode 3 Rips
+    eGG = GraphGen
+    ZeroHom = []
+    FirstHom = []
+    SecondHom = []
+    for i in range(quant):
+        G = next(eGG)
+        if mode==1:
+            simp_tree = edgeFiltration(G,neighborComplexSimp,mxDim=max_dim)
+        elif mode==2:
+            simp_tree = edgeFiltration(G,cliqueComplexSimp,mxDim=max_dim)
+        elif mode==3:
+            simp_tree = ripsSimplicialComplex(G,cutoff=cut,mxDim=max_dim)
+        else:
+            print("not valid mode")
+            break
+        if i == 1:
+            displaySimplices(simp_tree)
+        simp_tree.compute_persistence()
+        bettis = simp_tree.betti_numbers()
+        while len(bettis) < 3:
+            bettis.append(0)
+        ZeroHom.append(bettis[0])
+        FirstHom.append(bettis[1])
+        SecondHom.append(bettis[2])
+    
+    #now Plot
+    plt.hist(ZeroHom, edgecolor='black')
+    plt.xlabel('number')
+    plt.ylabel('sample count')
+    plt.show()
+    plt.hist(FirstHom, edgecolor='black')
+    plt.xlabel('number')
+    plt.ylabel('sample count')
+    plt.show()
+    plt.hist(SecondHom, edgecolor='black')
+    plt.xlabel('number')
+    plt.ylabel('sample count')
+    plt.show()
+        
+
 
 def main():
 
@@ -235,13 +278,15 @@ def main():
 
     output = "output.txt"
     #G = randomWeightedGraph(vert=30)
-    eGG = erdosGraphGenerator(ver=10)
+    eGG = erdosGraphGenerator(prob=0.1,ver=30)
 
-    G = next(eGG)
-    displayGraph(G,5)
+    betterSampleAndPlot(eGG,mode=1,cut=6)
+
+    #G = next(eGG)
+    #displayGraph(G,5)
     
-    simpTree = edgeFiltration(G,neighborComplexSimp)
-    displaySimplices(simpTree,10,output)
+    #simpTree = edgeFiltration(G,neighborComplexSimp)
+    #displaySimplices(simpTree,10,output)
 
     #simpTree = ripsSimplicialComplex(G,14)
     #simpTree = independentComplexSimp(G)

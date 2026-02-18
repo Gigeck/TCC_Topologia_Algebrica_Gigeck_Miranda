@@ -1,0 +1,5 @@
+[env]
+NODE_ENV = "development"
+
+[tools]
+python = "3.12"
